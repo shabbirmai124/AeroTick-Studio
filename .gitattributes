@@ -1,0 +1,16 @@
+*.ts linguist-detectable=false
+*.tsx linguist-detectable=false
+*.js linguist-detectable=false
+*.jsx linguist-detectable=false
+*.mjs linguist-detectable=false
+*.cjs linguist-detectable=false
+*.css linguist-detectable=false
+*.html linguist-detectable=false
+*.c linguist-detectable=false
+*.h linguist-detectable=false
+*.aero linguist-detectable=false
+*.yml linguist-detectable=false
+*.yaml linguist-detectable=false
+bindings/** linguist-detectable=false
+examples/** linguist-detectable=false
+.github/** linguist-detectable=false
