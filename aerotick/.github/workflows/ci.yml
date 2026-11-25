@@ -1,0 +1,51 @@
+name: AeroTick Compiler CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust-workspace:
+    name: Format, Clippy & Workspace Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo registry & target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            aerotick/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('aerotick/Cargo.toml', 'aerotick/crates/*/Cargo.toml') }}
+
+      - name: Check formatting
+        working-directory: aerotick
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy (-D warnings)
+        working-directory: aerotick
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Run full workspace unit & compile-fail tests
+        working-directory: aerotick
+        run: cargo test --workspace
+
+      - name: Smoke-test aeroc CLI & 1M-tick deterministic benchmark
+        working-directory: aerotick
+        run: |
+          cargo run -p aeroc -- check examples/reference_body.aero
+          cargo run -p aeroc -- emit-ir examples/reference_body.aero --llvm
+          cargo run -p aeroc -- emit-header examples/reference_body.aero
+          cargo run --release -p aeroc -- bench examples/reference_body.aero --ticks 1000000

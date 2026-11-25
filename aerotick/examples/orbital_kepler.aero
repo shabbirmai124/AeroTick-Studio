@@ -1,0 +1,20 @@
+// AeroTick Orbital Kepler Two-Body Symplectic Integrator (LEO 400km)
+state OrbitBody {
+    pos: Vec3<m>;
+    vel: Vec3<m/s>;
+    mu: m^3/s^2;
+}
+
+system OrbitalStep(dt: s) {
+    step(prev: OrbitBody) -> next: OrbitBody {
+        let r: m = norm(prev.pos);
+        let r2: m^2 = r * r;
+        let r_hat: Vec3<1> = normalize(prev.pos);
+        let grav_mag: m/s^2 = prev.mu / r2;
+        let accel: Vec3<m/s^2> = r_hat * (-grav_mag);
+        let next_vel: Vec3<m/s> = prev.vel + accel * dt;
+        next.vel = next_vel;
+        next.pos = prev.pos + next_vel * dt;
+        next.mu = prev.mu;
+    }
+}

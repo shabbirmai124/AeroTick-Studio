@@ -1,0 +1,5 @@
+// Milestone 1: SI Dimensional Algebra Verification
+let distance: m = 10.0 m;
+let elapsed: s = 2.0 s;
+let velocity: m/s = distance / elapsed;
+let force: N = 12.0 kg * (velocity / elapsed);

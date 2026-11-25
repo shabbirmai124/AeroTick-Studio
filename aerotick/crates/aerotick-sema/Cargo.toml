@@ -1,0 +1,9 @@
+[package]
+name = "aerotick-sema"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+aerotick-ast = { path = "../aerotick-ast" }
+aerotick-span = { path = "../aerotick-span" }

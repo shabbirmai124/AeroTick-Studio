@@ -1,0 +1,30 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/aerotick-span",
+    "crates/aerotick-lexer",
+    "crates/aerotick-ast",
+    "crates/aerotick-parser",
+    "crates/aerotick-sema",
+    "crates/aerotick-mir",
+    "crates/aerotick-abi",
+    "crates/aerotick-codegen-llvm",
+    "crates/aerotick-vm",
+    "crates/aeroc",
+]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+logos = "0.15"
+chumsky = "0.10.1"
+ariadne = "0.5"
+clap = { version = "4.5", features = ["derive"] }
+thiserror = "2.0"
+sha2 = "0.10"
+insta = "1.42"
+# Optional LLVM backend (enable with `--features llvm` on aerotick-codegen-llvm / aeroc)
+inkwell = { version = "0.5", features = ["llvm18-0"] }

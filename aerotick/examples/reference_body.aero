@@ -1,0 +1,20 @@
+// AeroTick Reference Rigid-Body Physics Kernel (Milestones 2-4)
+const GRAVITY: m/s^2 = 9.80665 m/s^2;
+
+state Body {
+    pos: Vec3<m>;
+    vel: Vec3<m/s>;
+    thrust: Vec3<N>;
+    mass: kg;
+}
+
+system Integrate(dt: s) {
+    step(prev: Body) -> next: Body {
+        let accel_y: m/s^2 = (prev.thrust.y / prev.mass) - GRAVITY;
+        let accel: Vec3<m/s^2> = Vec3(prev.thrust.x / prev.mass, accel_y, prev.thrust.z / prev.mass);
+        next.vel = prev.vel + accel * dt;
+        next.pos = prev.pos + prev.vel * dt;
+        next.thrust = prev.thrust;
+        next.mass = prev.mass;
+    }
+}

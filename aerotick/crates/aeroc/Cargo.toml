@@ -1,0 +1,25 @@
+[package]
+name = "aeroc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+llvm = ["aerotick-codegen-llvm/llvm"]
+
+[[bin]]
+name = "aeroc"
+path = "src/main.rs"
+
+[dependencies]
+aerotick-span = { path = "../aerotick-span" }
+aerotick-lexer = { path = "../aerotick-lexer" }
+aerotick-ast = { path = "../aerotick-ast" }
+aerotick-parser = { path = "../aerotick-parser" }
+aerotick-sema = { path = "../aerotick-sema" }
+aerotick-mir = { path = "../aerotick-mir" }
+aerotick-abi = { path = "../aerotick-abi" }
+aerotick-codegen-llvm = { path = "../aerotick-codegen-llvm" }
+aerotick-vm = { path = "../aerotick-vm" }
+clap.workspace = true

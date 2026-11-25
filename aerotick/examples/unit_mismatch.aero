@@ -1,0 +1,3 @@
+// Milestone 1: Negative compile-fail verification
+let speed: m/s = 10.0 m / 2.0 s;
+let mismatch = 10.0 m + 5.0 kg;
