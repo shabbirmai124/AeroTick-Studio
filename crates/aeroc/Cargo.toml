@@ -1,0 +1,29 @@
+[package]
+name = "aeroc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "aeroc"
+path = "src/main.rs"
+
+[features]
+default = ["jit"]
+jit = ["dep:aerotick-codegen-cranelift"]
+llvm = ["aerotick-codegen-llvm/llvm"]
+llvm18 = ["aerotick-codegen-llvm/llvm18"]
+llvm19 = ["aerotick-codegen-llvm/llvm19"]
+llvm20 = ["aerotick-codegen-llvm/llvm20"]
+
+[dependencies]
+aerotick-abi = { path = "../aerotick-abi" }
+aerotick-codegen-cranelift = { path = "../aerotick-codegen-cranelift", optional = true }
+aerotick-codegen-llvm = { path = "../aerotick-codegen-llvm" }
+aerotick-lexer = { path = "../aerotick-lexer" }
+aerotick-mir = { path = "../aerotick-mir" }
+aerotick-parser = { path = "../aerotick-parser" }
+aerotick-sema = { path = "../aerotick-sema" }
+aerotick-span = { path = "../aerotick-span" }
+aerotick-vm = { path = "../aerotick-vm" }
+clap.workspace = true

@@ -1,0 +1,19 @@
+const G0: m/s^2 = 1.0 g0;
+
+state Body {
+    pos: Vec3<m>;
+    vel: Vec3<m/s>;
+    thrust: Vec3<N>;
+    mass: kg;
+}
+
+system Integrate(dt: s) {
+    step(prev: Body) -> next: Body {
+        let gravity: Vec3<m/s^2> = Vec3(0.0 m/s^2, G0, 0.0 m/s^2);
+        let accel: Vec3<m/s^2> = prev.thrust / prev.mass - gravity;
+        next.vel = prev.vel + accel * dt;
+        next.pos = prev.pos + prev.vel * dt;
+        next.thrust = prev.thrust;
+        next.mass = prev.mass;
+    }
+}

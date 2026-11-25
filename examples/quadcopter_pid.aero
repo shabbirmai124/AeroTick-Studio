@@ -1,0 +1,46 @@
+const G0: m/s^2 = 1.0 g0;
+const MAX_THRUST: N = 60.0 N;
+
+fn pid_hover_thrust(err: m, integral: m*s, deriv: m/s, mass: kg) -> N {
+    let hover: N = mass * G0;
+    let raw: N = hover + 18.0 N/m * err + 4.5 N/m/s * integral + 12.0 kg/s * deriv;
+    return clamp(raw, 0.0 N, MAX_THRUST);
+}
+
+state Quadcopter {
+    altitude: m;
+    target_alt: m;
+    vz: m/s;
+    integral_err: m*s;
+    prev_err: m;
+    mass: kg;
+    rotor_speed: rad/s;
+}
+
+system QuadcopterHover(dt: s) {
+    step(prev: Quadcopter) -> next: Quadcopter {
+        let err: m = prev.target_alt - prev.altitude;
+        let deriv: m/s = (err - prev.prev_err) / dt;
+        let next_integral: m*s = clamp(prev.integral_err + err * dt, -10.0 m*s, 10.0 m*s);
+        let lift: N = pid_hover_thrust(err, next_integral, deriv, prev.mass);
+        let az: m/s^2 = lift / prev.mass - G0;
+        let next_vz: m/s = prev.vz + az * dt;
+
+        next.vz = next_vz;
+        next.altitude = prev.altitude + next_vz * dt;
+        next.target_alt = prev.target_alt;
+        next.integral_err = next_integral;
+        next.prev_err = err;
+        next.mass = prev.mass;
+        next.rotor_speed = 600.0 rpm + (lift / 1.0 N) * 1.0 rad/s;
+    }
+}
+
+test "quadcopter_pid_hover_units" {
+    let hover_n: N = pid_hover_thrust(0.0 m, 0.0 m*s, 0.0 m/s, 1.8 kg);
+    assert_approx(hover_n, 17.65197 N, 1e-5 N);
+    let clamped_n: N = pid_hover_thrust(100.0 m, 0.0 m*s, 0.0 m/s, 1.8 kg);
+    assert_approx(clamped_n, 60.0 N, 1e-9 N);
+    let rpm_rad: rad/s = 600.0 rpm;
+    assert_approx(rpm_rad, 62.83185307179586 rad/s, 1e-9 rad/s);
+}

@@ -1,0 +1,64 @@
+unit Thrust = N;
+unit Inertia = kg*m^2;
+
+const G0: m/s^2 = 1.0 g0;
+const DRY_MASS: kg = 420.0 kg;
+
+fn aerodynamic_drag(vel: Vec3<m/s>, drag_k: kg/m) -> Vec3<N> {
+    let speed: m/s = norm(vel);
+    return -drag_k * (vel * speed);
+}
+
+state Rocket6DoF {
+    pos: Vec3<m>;
+    vel: Vec3<m/s>;
+    thrust: Vec3<Thrust>;
+    omega: Vec3<rad/s>;
+    quat: Quat;
+    inertia: Mat3<Inertia>;
+    mass: kg;
+    fuel_rate: kg/s;
+    drag_k: kg/m;
+}
+
+system Rocket6DoFStep(dt: s) {
+    step(prev: Rocket6DoF) -> next: Rocket6DoF {
+        let active_thrust: Vec3<N> = if prev.mass > DRY_MASS { prev.thrust } else { Vec3(0.0 N, 0.0 N, 0.0 N) };
+        let thrust_world: Vec3<N> = quat_rotate(prev.quat, active_thrust);
+        let drag: Vec3<N> = aerodynamic_drag(prev.vel, prev.drag_k);
+        let gravity: Vec3<N> = Vec3(0.0 N, -prev.mass * G0, 0.0 N);
+        let net_force: Vec3<N> = thrust_world + drag + gravity;
+        let accel: Vec3<m/s^2> = net_force / prev.mass;
+
+        let lever: Vec3<m> = Vec3(0.0 m, -1.5 m, 0.0 m);
+        let torque: Vec3<N*m> = cross(lever, active_thrust) * 0.01;
+        let inv_inertia: Mat3<1/(kg*m^2)> = mat3_inv(prev.inertia);
+        let torque_rad: Vec3<N*m*rad> = torque * 1.0 rad;
+        let alpha: Vec3<rad/s^2> = inv_inertia * torque_rad;
+        let next_omega: Vec3<rad/s> = prev.omega + alpha * dt;
+
+        next.omega = next_omega;
+        next.quat = quat_integrate(prev.quat, next_omega, dt);
+        next.vel = prev.vel + accel * dt;
+        next.pos = prev.pos + prev.vel * dt;
+        next.mass = if prev.mass > DRY_MASS { prev.mass - prev.fuel_rate * dt } else { DRY_MASS };
+        next.thrust = prev.thrust;
+        next.inertia = prev.inertia;
+        next.fuel_rate = prev.fuel_rate;
+        next.drag_k = prev.drag_k;
+    }
+}
+
+test "rocket_6dof_units_and_tensors" {
+    let q_id: Quat = Quat(1.0, 0.0, 0.0, 0.0);
+    let q_step: Quat = quat_integrate(q_id, Vec3(0.0 rad/s, 0.0 rad/s, 1.0 rad/s), 0.1 s);
+    let q_len: 1 = norm(q_step);
+    assert_approx(q_len, 1.0, 1e-9);
+    let rotated: Vec3<m> = quat_rotate(q_id, Vec3(1.0 m, 2.0 m, 3.0 m));
+    assert_approx(rotated.x, 1.0 m, 1e-9 m);
+    let inert: Mat3<Inertia> = mat3_diag(120.0 kg*m^2, 120.0 kg*m^2, 45.0 kg*m^2);
+    let inv_i: Mat3<1/(kg*m^2)> = mat3_inv(inert);
+    let alpha_test: Vec3<rad/s^2> = inv_i * Vec3(120.0 N*m*rad, 0.0 N*m*rad, 45.0 N*m*rad);
+    assert_approx(alpha_test.x, 1.0 rad/s^2, 1e-9 rad/s^2);
+    assert_approx(alpha_test.z, 1.0 rad/s^2, 1e-9 rad/s^2);
+}
