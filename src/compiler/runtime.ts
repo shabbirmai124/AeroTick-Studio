@@ -86,6 +86,7 @@ export interface SimulationSnapshot {
     scalars: Record<string, number>;
   }>;
   trail: Array<[number, number]>;
+  entityTrails: Array<Array<[number, number]>>;
 }
 
 export interface ReplayVerificationResult {
@@ -99,6 +100,9 @@ export interface ReplayVerificationResult {
   finalVel: [number, number, number];
 }
 
+const MAX_TRAIL_POINTS = 1024;
+const MAX_TRACKED_ENTITIES = 8;
+
 export class DeterministicRuntime {
   readonly system: MirSystem;
   readonly layout: SoAStateLayout;
@@ -110,6 +114,8 @@ export class DeterministicRuntime {
   tick = 0;
   simTime = 0;
   readonly trail: Array<[number, number]> = [];
+  readonly entityTrails: Array<Array<[number, number]>> = [];
+  private trailStride = 1;
 
   constructor(mir: MirProgram, count = 1, dt = 0.01, mode: NumericMode = 'float64') {
     const sys = mir.systems[0];
@@ -139,30 +145,58 @@ export class DeterministicRuntime {
     this.tick = 0;
     this.simTime = 0;
     this.trail.length = 0;
+    this.entityTrails.length = 0;
+    this.trailStride = 1;
 
     const isOrbital = this.layout.stateName.toLowerCase().includes('orbit');
     const isRocket = this.layout.fields.some(
       (f) => f.name === 'fuel_rate' || f.name === 'drag_k',
     );
+    const orbitSatCount = Math.max(1, Math.min(this.count, MAX_TRACKED_ENTITIES));
 
     for (let i = 0; i < this.count; i++) {
-      const spread = i === 0 ? 0 : (i % 16) * 0.5;
+      const orbitTheta = i === 0 ? 0 : (i / orbitSatCount) * Math.PI * 1.5;
+      const orbitRadius = i === 0 ? 6_771_000.0 : 6_771_000.0 + (i % 4) * 320_000.0;
+      const orbitSpeed =
+        i === 0 ? 7_672.0 : Math.sqrt(3.986_004_418e14 / orbitRadius);
+
       for (const f of this.layout.fields) {
         const arr = this.prevBuf.get(f.name);
         if (!arr) continue;
         const base = i * f.lanes;
         if (f.mirType === 'vec3_simd4') {
           if (f.name === 'pos') {
-            arr[base] = isOrbital ? 6_771_000.0 : spread;
-            arr[base + 1] = isOrbital || isRocket ? 0.0 : 120.0 + spread;
+            if (isOrbital) {
+              arr[base] = orbitRadius * Math.cos(orbitTheta);
+              arr[base + 1] = orbitRadius * Math.sin(orbitTheta);
+            } else if (isRocket) {
+              arr[base] = i * 55.0;
+              arr[base + 1] = 0.0;
+            } else {
+              arr[base] = i === 0 ? 0.0 : -i * 12.0;
+              arr[base + 1] = i === 0 ? 120.0 : 120.0 - i * 10.0;
+            }
             arr[base + 2] = 0.0;
           } else if (f.name === 'vel') {
-            arr[base] = isOrbital ? 0.0 : isRocket ? 14.0 : 28.0 + (i % 5) * 1.2;
-            arr[base + 1] = isOrbital ? 7_672.0 : isRocket ? 0.0 : 42.0;
+            if (isOrbital) {
+              arr[base] = i === 0 ? 0.0 : -orbitSpeed * Math.sin(orbitTheta);
+              arr[base + 1] = i === 0 ? 7_672.0 : orbitSpeed * Math.cos(orbitTheta);
+            } else if (isRocket) {
+              arr[base] = 14.0 + i * 5.5;
+              arr[base + 1] = 0.0;
+            } else {
+              arr[base] = i === 0 ? 28.0 : 28.0 + i * 3.5;
+              arr[base + 1] = i === 0 ? 42.0 : 42.0 - i * 2.2;
+            }
             arr[base + 2] = 0.0;
           } else if (f.name === 'thrust') {
-            arr[base] = 0.0;
-            arr[base + 1] = isRocket ? 24_000.0 : 1_180.0;
+            if (isRocket) {
+              arr[base] = i * 450.0;
+              arr[base + 1] = 24_000.0 - i * 450.0;
+            } else {
+              arr[base] = 0.0;
+              arr[base + 1] = i === 0 ? 1_180.0 : 1_180.0 + i * 65.0;
+            }
             arr[base + 2] = 0.0;
           } else {
             arr[base] = 0.0;
@@ -171,7 +205,7 @@ export class DeterministicRuntime {
           }
           arr[base + 3] = 0.0;
         } else {
-          if (f.name === 'mass') arr[base] = isRocket ? 1_200.0 : 100.0;
+          if (f.name === 'mass') arr[base] = isRocket ? 1_200.0 + i * 25.0 : 100.0;
           else if (f.name === 'fuel_rate') arr[base] = 4.2;
           else if (f.name === 'drag_k') arr[base] = 0.32;
           else if (f.name === 'mu') arr[base] = 3.986_004_418e14;
@@ -180,8 +214,14 @@ export class DeterministicRuntime {
       }
     }
 
-    const pos0 = this.readEntityVec3(0, 'pos');
-    this.trail.push([pos0[0], pos0[1]]);
+    const tracked = Math.min(this.count, MAX_TRACKED_ENTITIES);
+    for (let i = 0; i < tracked; i++) {
+      const p = this.readEntityVec3(i, 'pos');
+      this.entityTrails.push([[p[0], p[1]]]);
+    }
+    if (this.entityTrails[0]) {
+      this.trail.push([this.entityTrails[0][0][0], this.entityTrails[0][0][1]]);
+    }
   }
 
   private execInsts(insts: MirInst[], idx: number, regs: Map<string, RegVal>): void {
@@ -349,11 +389,33 @@ export class DeterministicRuntime {
     this.tick++;
     this.simTime += this.dt;
 
-    if (recordTrail) {
-      const p0 = this.readEntityVec3(0, 'pos');
-      this.trail.push([p0[0], p0[1]]);
-      if (this.trail.length > 500) {
-        this.trail.shift();
+    if (recordTrail && this.tick % this.trailStride === 0) {
+      const tracked = Math.min(this.count, MAX_TRACKED_ENTITIES);
+      for (let i = 0; i < tracked; i++) {
+        const p = this.readEntityVec3(i, 'pos');
+        if (!this.entityTrails[i]) this.entityTrails[i] = [];
+        this.entityTrails[i].push([p[0], p[1]]);
+      }
+      if (this.entityTrails[0]) {
+        const latest = this.entityTrails[0][this.entityTrails[0].length - 1];
+        this.trail.push([latest[0], latest[1]]);
+      }
+
+      if (this.trail.length >= MAX_TRAIL_POINTS) {
+        const compact = (arr: Array<[number, number]>) => {
+          const out: Array<[number, number]> = [];
+          for (let k = 0; k < arr.length; k++) {
+            if (k === 0 || k % 2 === 0) out.push(arr[k]);
+          }
+          return out;
+        };
+        const compacted0 = compact(this.trail);
+        this.trail.length = 0;
+        this.trail.push(...compacted0);
+        for (let i = 0; i < this.entityTrails.length; i++) {
+          this.entityTrails[i] = compact(this.entityTrails[i]);
+        }
+        this.trailStride *= 2;
       }
     }
   }
@@ -395,7 +457,7 @@ export class DeterministicRuntime {
 
   snapshot(): SimulationSnapshot {
     const entities: SimulationSnapshot['entities'] = [];
-    const maxSample = Math.min(this.count, 8);
+    const maxSample = Math.min(this.count, MAX_TRACKED_ENTITIES);
     for (let i = 0; i < maxSample; i++) {
       const scalars: Record<string, number> = {};
       for (const f of this.layout.fields) {
@@ -412,13 +474,26 @@ export class DeterministicRuntime {
       });
     }
 
+    const snappedEntityTrails = this.entityTrails.map((t, i) => {
+      const copy = [...t];
+      const cur = entities[i]?.pos;
+      const last = copy[copy.length - 1];
+      if (cur && (!last || last[0] !== cur[0] || last[1] !== cur[1])) {
+        copy.push([cur[0], cur[1]]);
+      }
+      return copy;
+    });
+
+    const snappedTrail = snappedEntityTrails[0] ?? [...this.trail];
+
     return {
       tick: this.tick,
       simTime: this.simTime,
       entityCount: this.count,
       sha256: this.stateSha256Hex(),
       entities,
-      trail: [...this.trail],
+      trail: snappedTrail,
+      entityTrails: snappedEntityTrails,
     };
   }
 }

@@ -95,3 +95,22 @@ test('executes 1,000 ticks with exact analytical velocity and bit-exact SHA-256 
   const replayFixed = verifyReplayDeterminism(res.mir, 1000, 0.01, 'fixed64', 1);
   assert.equal(replayFixed.bitExact, true);
 });
+
+test('preserves t=0 launch origin across >1,500 ticks and separates multi-entity SoA lanes', () => {
+  const preset = AERO_PRESETS.find((p) => p.id === 'reference_body');
+  assert.ok(preset);
+  const res = compileAero(preset.source, preset.filename);
+  assert.ok(res.mir);
+
+  const vm = new DeterministicRuntime(res.mir, 8, 0.01, 'float64');
+  vm.stepMany(1600, true);
+  const snap = vm.snapshot();
+
+  assert.equal(snap.entities.length, 8);
+  assert.equal(snap.trail[0][0], 0);
+  assert.equal(snap.trail[0][1], 120);
+  assert.ok(snap.trail.length <= 1025);
+  assert.equal(snap.entityTrails.length, 8);
+  assert.notEqual(snap.entities[0].pos[0], snap.entities[1].pos[0]);
+  assert.notEqual(snap.entities[0].pos[1], snap.entities[1].pos[1]);
+});
