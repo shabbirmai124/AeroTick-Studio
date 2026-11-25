@@ -39,37 +39,88 @@ AeroTick eliminates the three classic sources of physics simulation bugs at comp
 
 ---
 
-## Repository Structure
+## Repository Structure & Files Map
 
 ```text
 /
-├── Cargo.toml                         # Root Cargo Edition 2024 workspace (12 crates)
-├── LICENSE                            # MIT License
-├── README.md                          # Documentation
-├── .gitignore                         # Rust build artifacts ignore rules
-├── .github/workflows/ci.yml           # Linux/macOS/Windows CI matrix
+├── Cargo.toml                                  # Root Cargo Edition 2024 workspace (12 pure-Rust crates)
+├── LICENSE                                     # MIT License
+├── README.md                                   # Project architecture, CLI guide, and file map
+├── .gitattributes                              # Linguist rules ensuring 100% Rust repository stats
+├── .gitignore                                  # Rust target/, binary artifacts, and .aeroreplay ignore rules
+├── .github/
+│   └── workflows/
+│       └── ci.yml                              # Linux/macOS/Windows CI matrix (fmt, clippy, test, aeroc smoke)
 ├── crates/
-│   ├── aerotick-span/                 # SourceMap, Span, line/col mapping, ariadne renderer
-│   ├── aerotick-lexer/                # logos tokenizer (E0101)
-│   ├── aerotick-ast/                  # Spanned AST (unit, const, state, fn, system, test)
-│   ├── aerotick-parser/               # chumsky 0.10 parser + recovery (E0102)
-│   ├── aerotick-sema/                 # 7-dim SI + rad verifier, 6-DoF & step safety, proptest
-│   ├── aerotick-mir/                  # Unit-erased SoA MIR + 4-pass deterministic optimizer
-│   ├── aerotick-codegen-llvm/         # Strict IEEE-754 LLVM IR + optional inkwell 0.11 .o
-│   ├── aerotick-codegen-cranelift/    # Pure-Rust native JIT (cranelift-jit + libm)
-│   ├── aerotick-vm/                   # Swarm SoA VM (f64 / Q32.32), rayon chunks, .aeroreplay
-│   ├── aerotick-abi/                  # Portable C11/C++ aerotick.h generator (_Static_assert)
-│   ├── aerotick-lsp/                  # JSON-RPC Language Server over stdio
-│   └── aeroc/                         # Compiler CLI driver
+│   ├── aerotick-span/
+│   │   ├── Cargo.toml                          # Span crate manifest (ariadne)
+│   │   └── src/lib.rs                          # SourceMap, Span, line/col mapping, ariadne renderer
+│   ├── aerotick-lexer/
+│   │   ├── Cargo.toml                          # Lexer crate manifest (logos, aerotick-span)
+│   │   └── src/lib.rs                          # Zero-copy DFA tokenizer + E0101 diagnostics
+│   ├── aerotick-ast/
+│   │   ├── Cargo.toml                          # AST crate manifest (aerotick-span)
+│   │   └── src/lib.rs                          # Spanned AST (unit, const, state, fn, system, test)
+│   ├── aerotick-parser/
+│   │   ├── Cargo.toml                          # Parser crate manifest (chumsky, ast, lexer, span)
+│   │   └── src/lib.rs                          # chumsky 0.10 recursive parser + error recovery (E0102)
+│   ├── aerotick-sema/
+│   │   ├── Cargo.toml                          # Semantic analyzer manifest (ast, span, libm, proptest)
+│   │   └── src/lib.rs                          # 7-dim SI + rad algebra, 6-DoF types, step safety (E0201..W0301)
+│   ├── aerotick-mir/
+│   │   ├── Cargo.toml                          # MIR optimizer manifest (ast, sema, libm)
+│   │   └── src/lib.rs                          # Unit-erased 32B SoA MIR + 4-pass deterministic optimizer
+│   ├── aerotick-codegen-llvm/
+│   │   ├── Cargo.toml                          # LLVM backend manifest (ast, mir, thiserror, optional inkwell)
+│   │   └── src/lib.rs                          # Strict IEEE-754 LLVM IR emitter + optional native .o output
+│   ├── aerotick-codegen-cranelift/
+│   │   ├── Cargo.toml                          # JIT backend manifest (cranelift-* 0.116, libm, ast, mir)
+│   │   └── src/lib.rs                          # Pure-Rust native x86_64/ARM64 JIT compiler + libm trampolines
+│   ├── aerotick-vm/
+│   │   ├── Cargo.toml                          # Swarm VM manifest (ast, mir, libm, rayon, sha2, thiserror)
+│   │   └── src/lib.rs                          # Double-buffered SoA VM (f64 / Q32.32), rayon chunks, .aeroreplay
+│   ├── aerotick-abi/
+│   │   ├── Cargo.toml                          # C-ABI header generator manifest (aerotick-mir)
+│   │   └── src/lib.rs                          # Portable C11/C++ aerotick.h emitter with _Static_assert checks
+│   ├── aerotick-lsp/
+│   │   ├── Cargo.toml                          # LSP server manifest (span, lexer, parser, sema, serde_json)
+│   │   └── src/main.rs                         # Stdio JSON-RPC Language Server (diagnostics, hover, symbols)
+│   └── aeroc/
+│       ├── Cargo.toml                          # CLI binary manifest (all compiler/VM crates, clap, jit/llvm features)
+│       └── src/main.rs                         # `aeroc` CLI (check, emit-ir, emit-header, run, bench, replay, test, fmt)
 ├── examples/
-│   ├── reference_body.aero            # Canonical rigid-body integrator (104 B/entity SoA)
-│   ├── rocket_6dof.aero               # 6-DoF rigid-body rocket (Quat, Mat3, pure fn, tests)
-│   ├── quadcopter_pid.aero            # PID altitude/attitude hover controller (rpm, clamp, tests)
-│   └── invalid_physics.aero           # Compile-fail showcase (E0202, E0210, E0301, E0303, E0305)
+│   ├── reference_body.aero                     # Canonical rigid-body integrator (104 B/entity SoA)
+│   ├── rocket_6dof.aero                        # 6-DoF rigid-body rocket (Quat, Mat3, pure fn, inline tests)
+│   ├── quadcopter_pid.aero                     # PID altitude/attitude hover controller (rpm, clamp, inline tests)
+│   └── invalid_physics.aero                    # Compile-fail showcase (E0202, E0210, E0301, E0303, E0305)
 └── bindings/
-    ├── c_example/main.c               # Portable C11 double-buffered SoA host example
-    └── godot_gdextension/README.md    # Godot 4 GDExtension C++ integration guide
+    ├── c_example/
+    │   └── main.c                              # Portable C11 double-buffered SoA host example
+    └── godot_gdextension/
+        └── README.md                           # Godot 4 GDExtension C++ integration guide
 ```
+
+### Folder & File Details
+
+| Path | Kind | Purpose |
+| :--- | :--- | :--- |
+| `Cargo.toml` | Workspace Config | Defines the 12-crate Cargo Edition 2024 workspace and shared dependency versions. |
+| `.gitattributes` | Git Config | Marks non-Rust examples, bindings, and workflows as `linguist-detectable=false` for 100% Rust language reporting. |
+| `.github/workflows/ci.yml` | CI Pipeline | Runs `cargo fmt`, `cargo clippy -D warnings`, `cargo test --workspace`, and `aeroc` CLI smoke tests across Linux, macOS, and Windows. |
+| `crates/aerotick-span/` | Rust Library | Byte-offset `Span`, `SourceMap`, `(line, col)` coordinate conversion, and `ariadne` error formatting. |
+| `crates/aerotick-lexer/` | Rust Library | `logos` DFA lexer producing spanned tokens and `E0101` invalid-token errors. |
+| `crates/aerotick-ast/` | Rust Library | Untyped AST nodes for units, constants, states, pure functions, systems, statements, and tests. |
+| `crates/aerotick-parser/` | Rust Library | `chumsky` parser with tight literal unit disambiguation (`N/m` vs `N / mass`) and `E0102` recovery. |
+| `crates/aerotick-sema/` | Rust Library | 7-component SI + radian dimensional checker, 6-DoF tensor rules, step-safety (`E0301`–`E0305`), and `proptest` algebraic laws. |
+| `crates/aerotick-mir/` | Rust Library | Lowers HIR to unit-erased 32B-aligned SoA MIR with function inlining, loop unrolling, IEEE-754 constant folding, CSE/DCE, and 64B cache-line stats. |
+| `crates/aerotick-codegen-llvm/` | Rust Library | Emits deterministic `fp-contract=off` LLVM IR with `noalias`/`align 32` attributes and optional `inkwell` `.o` object emission. |
+| `crates/aerotick-codegen-cranelift/` | Rust Library | Pure-Rust Cranelift JIT lowering SoA MIR directly into native machine code with deterministic `libm` calls. |
+| `crates/aerotick-vm/` | Rust Library | Double-buffered `Float64` / `Q32.32` Swarm VM with `rayon` parallel chunking, SHA-256 `.aeroreplay` rollback, and inline test execution. |
+| `crates/aerotick-abi/` | Rust Library | Emits portable C11/C++ `aerotick.h` structs (`AeroVec3Simd4`, `AeroQuat`, `AeroMat3`, `<State>_SoA`) with compile-time layout assertions. |
+| `crates/aerotick-lsp/` | Rust Binary | JSON-RPC LSP over stdio delivering live diagnostics, SI unit/alignment hover tooltips, and document symbols. |
+| `crates/aeroc/` | Rust Binary | Main compiler driver exposing `check`, `emit-ir`, `emit-header`, `run`, `bench`, `replay`, `test`, and `fmt`. |
+| `examples/` | `.aero` Kernels | Reference rigid-body, 6-DoF rocket, quadcopter PID, and compile-fail verification programs. |
+| `bindings/` | Host Integration | Native C11 host harness (`c_example/main.c`) and Godot 4 GDExtension C++ guide (`godot_gdextension/README.md`). |
 
 ---
 
