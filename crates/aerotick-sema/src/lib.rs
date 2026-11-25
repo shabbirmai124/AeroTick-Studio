@@ -2,9 +2,7 @@
 //! Phase 3: Semantic Analysis, 7-Component SI + Radian Dimensional Algebra,
 //! 6-DoF Quat/Mat3 Type Checking, Pure Function & Step-Safety Verification.
 
-use aerotick_ast::{
-    BinOp, Expr, FnDecl, Item, Program, Stmt, TypeExpr, UnitExpr,
-};
+use aerotick_ast::{BinOp, Expr, FnDecl, Item, Program, Stmt, TypeExpr, UnitExpr};
 use aerotick_span::{Diagnostic, Span};
 use std::collections::{HashMap, HashSet};
 use std::f64::consts::PI;
@@ -19,22 +17,67 @@ pub struct DimVector {
 
 impl DimVector {
     pub const DIMENSIONLESS: Self = Self { si: [0; 7], rad: 0 };
-    pub const METER: Self = Self { si: [1, 0, 0, 0, 0, 0, 0], rad: 0 };
-    pub const KILOGRAM: Self = Self { si: [0, 1, 0, 0, 0, 0, 0], rad: 0 };
-    pub const SECOND: Self = Self { si: [0, 0, 1, 0, 0, 0, 0], rad: 0 };
-    pub const AMPERE: Self = Self { si: [0, 0, 0, 1, 0, 0, 0], rad: 0 };
-    pub const KELVIN: Self = Self { si: [0, 0, 0, 0, 1, 0, 0], rad: 0 };
-    pub const MOLE: Self = Self { si: [0, 0, 0, 0, 0, 1, 0], rad: 0 };
-    pub const CANDELA: Self = Self { si: [0, 0, 0, 0, 0, 0, 1], rad: 0 };
+    pub const METER: Self = Self {
+        si: [1, 0, 0, 0, 0, 0, 0],
+        rad: 0,
+    };
+    pub const KILOGRAM: Self = Self {
+        si: [0, 1, 0, 0, 0, 0, 0],
+        rad: 0,
+    };
+    pub const SECOND: Self = Self {
+        si: [0, 0, 1, 0, 0, 0, 0],
+        rad: 0,
+    };
+    pub const AMPERE: Self = Self {
+        si: [0, 0, 0, 1, 0, 0, 0],
+        rad: 0,
+    };
+    pub const KELVIN: Self = Self {
+        si: [0, 0, 0, 0, 1, 0, 0],
+        rad: 0,
+    };
+    pub const MOLE: Self = Self {
+        si: [0, 0, 0, 0, 0, 1, 0],
+        rad: 0,
+    };
+    pub const CANDELA: Self = Self {
+        si: [0, 0, 0, 0, 0, 0, 1],
+        rad: 0,
+    };
     pub const RADIAN: Self = Self { si: [0; 7], rad: 1 };
-    pub const NEWTON: Self = Self { si: [1, 1, -2, 0, 0, 0, 0], rad: 0 };
-    pub const JOULE: Self = Self { si: [2, 1, -2, 0, 0, 0, 0], rad: 0 };
-    pub const WATT: Self = Self { si: [2, 1, -3, 0, 0, 0, 0], rad: 0 };
-    pub const PASCAL: Self = Self { si: [-1, 1, -2, 0, 0, 0, 0], rad: 0 };
-    pub const HERTZ: Self = Self { si: [0, 0, -1, 0, 0, 0, 0], rad: 0 };
-    pub const ACCEL: Self = Self { si: [1, 0, -2, 0, 0, 0, 0], rad: 0 };
-    pub const VELOCITY: Self = Self { si: [1, 0, -1, 0, 0, 0, 0], rad: 0 };
-    pub const ANGULAR_VEL: Self = Self { si: [0, 0, -1, 0, 0, 0, 0], rad: 1 };
+    pub const NEWTON: Self = Self {
+        si: [1, 1, -2, 0, 0, 0, 0],
+        rad: 0,
+    };
+    pub const JOULE: Self = Self {
+        si: [2, 1, -2, 0, 0, 0, 0],
+        rad: 0,
+    };
+    pub const WATT: Self = Self {
+        si: [2, 1, -3, 0, 0, 0, 0],
+        rad: 0,
+    };
+    pub const PASCAL: Self = Self {
+        si: [-1, 1, -2, 0, 0, 0, 0],
+        rad: 0,
+    };
+    pub const HERTZ: Self = Self {
+        si: [0, 0, -1, 0, 0, 0, 0],
+        rad: 0,
+    };
+    pub const ACCEL: Self = Self {
+        si: [1, 0, -2, 0, 0, 0, 0],
+        rad: 0,
+    };
+    pub const VELOCITY: Self = Self {
+        si: [1, 0, -1, 0, 0, 0, 0],
+        rad: 0,
+    };
+    pub const ANGULAR_VEL: Self = Self {
+        si: [0, 0, -1, 0, 0, 0, 0],
+        rad: 1,
+    };
 
     pub const fn mul(self, rhs: Self) -> Self {
         Self {
@@ -797,7 +840,10 @@ pub fn analyze(program: &Program) -> (HirProgram, Vec<Diagnostic>) {
         if !scope.saw_return {
             diagnostics.push(Diagnostic::error(
                 "E0203",
-                format!("Pure function '{}' must end with a `return` statement", f.name),
+                format!(
+                    "Pure function '{}' must end with a `return` statement",
+                    f.name
+                ),
                 f.span,
                 "missing return statement",
             ));
@@ -889,12 +935,7 @@ pub fn analyze(program: &Program) -> (HirProgram, Vec<Diagnostic>) {
                     symbols.push(SymbolInfo {
                         name: name.clone(),
                         kind: SymbolKind::Local,
-                        detail: format!(
-                            "{}: {} [{}]",
-                            name,
-                            final_ty,
-                            final_ty.alignment_label()
-                        ),
+                        detail: format!("{}: {} [{}]", name, final_ty, final_ty.alignment_label()),
                         span: *name_span,
                     });
                 }
@@ -1019,7 +1060,10 @@ pub fn analyze(program: &Program) -> (HirProgram, Vec<Diagnostic>) {
                                     sys.step.next_name, f.name
                                 ),
                                 sys.step.span,
-                                format!("missing assignment to `{}.{}`", sys.step.next_name, f.name),
+                                format!(
+                                    "missing assignment to `{}.{}`",
+                                    sys.step.next_name, f.name
+                                ),
                             )
                             .with_help(format!(
                                 "Add `{}.{} = {}.{};` to preserve it across ticks.",
@@ -1129,12 +1173,48 @@ fn eval_const_scalar(expr: &HirExpr, consts: &HashMap<String, HirConst>) -> Opti
                     }
                 }
                 BinOp::Pow => libm::pow(l, r),
-                BinOp::Eq => if l == r { 1.0 } else { 0.0 },
-                BinOp::Ne => if l != r { 1.0 } else { 0.0 },
-                BinOp::Lt => if l < r { 1.0 } else { 0.0 },
-                BinOp::Le => if l <= r { 1.0 } else { 0.0 },
-                BinOp::Gt => if l > r { 1.0 } else { 0.0 },
-                BinOp::Ge => if l >= r { 1.0 } else { 0.0 },
+                BinOp::Eq => {
+                    if l == r {
+                        1.0
+                    } else {
+                        0.0
+                    }
+                }
+                BinOp::Ne => {
+                    if l != r {
+                        1.0
+                    } else {
+                        0.0
+                    }
+                }
+                BinOp::Lt => {
+                    if l < r {
+                        1.0
+                    } else {
+                        0.0
+                    }
+                }
+                BinOp::Le => {
+                    if l <= r {
+                        1.0
+                    } else {
+                        0.0
+                    }
+                }
+                BinOp::Gt => {
+                    if l > r {
+                        1.0
+                    } else {
+                        0.0
+                    }
+                }
+                BinOp::Ge => {
+                    if l >= r {
+                        1.0
+                    } else {
+                        0.0
+                    }
+                }
             })
         }
         _ => None,
@@ -1223,7 +1303,10 @@ fn mismatch_code(expected: &ValueType, found: &ValueType) -> &'static str {
 
 fn check_mutual_recursion(functions: &[HirFn], diagnostics: &mut Vec<Diagnostic>) {
     let mut adj: HashMap<&str, Vec<&str>> = HashMap::new();
-    let fn_spans: HashMap<&str, Span> = functions.iter().map(|f| (f.name.as_str(), f.span)).collect();
+    let fn_spans: HashMap<&str, Span> = functions
+        .iter()
+        .map(|f| (f.name.as_str(), f.span))
+        .collect();
     for f in functions {
         let mut calls = Vec::new();
         collect_calls_in_stmts(&f.body, &mut calls);
@@ -1925,7 +2008,9 @@ fn check_expr(
             if (scope.in_step || scope.in_fn) && is_forbidden_alloc(callee) {
                 diagnostics.push(Diagnostic::error(
                     "E0303",
-                    format!("Heap allocation '{callee}(...)' is forbidden inside deterministic kernel"),
+                    format!(
+                        "Heap allocation '{callee}(...)' is forbidden inside deterministic kernel"
+                    ),
                     *callee_span,
                     "heap allocation prohibited in hot loop",
                 ));
@@ -2067,7 +2152,8 @@ fn check_expr(
                             ValueType::Quat,
                             ValueType::Vec3(omega_dim),
                             ValueType::Scalar(dt_dim),
-                        ) if *omega_dim == DimVector::ANGULAR_VEL && *dt_dim == DimVector::SECOND =>
+                        ) if *omega_dim == DimVector::ANGULAR_VEL
+                            && *dt_dim == DimVector::SECOND =>
                         {
                             ValueType::Quat
                         }
@@ -2093,11 +2179,11 @@ fn check_expr(
                 }
                 "mat3_diag" if h_args.len() == 3 => {
                     match (h_args[0].ty(), h_args[1].ty(), h_args[2].ty()) {
-                        (
-                            ValueType::Scalar(a),
-                            ValueType::Scalar(b),
-                            ValueType::Scalar(c),
-                        ) if a == b && b == c => ValueType::Mat3(*a),
+                        (ValueType::Scalar(a), ValueType::Scalar(b), ValueType::Scalar(c))
+                            if a == b && b == c =>
+                        {
+                            ValueType::Mat3(*a)
+                        }
                         (ValueType::Scalar(_), ValueType::Scalar(_), ValueType::Scalar(_)) => {
                             diagnostics.push(Diagnostic::error(
                                 "E0202",
@@ -2177,29 +2263,31 @@ fn check_expr(
                         return None;
                     }
                 },
-                "cbrt" if h_args.len() == 1 => match h_args[0].ty() {
-                    ValueType::Scalar(a) => match a.cbrt() {
-                        Some(d) => ValueType::Scalar(d),
-                        None => {
-                            diagnostics.push(Diagnostic::error(
+                "cbrt" if h_args.len() == 1 => {
+                    match h_args[0].ty() {
+                        ValueType::Scalar(a) => match a.cbrt() {
+                            Some(d) => ValueType::Scalar(d),
+                            None => {
+                                diagnostics.push(Diagnostic::error(
                                 "E0210",
                                 format!("Non-integer resulting dimension: cannot take cbrt of unit {a}"),
                                 *span,
                                 "non-integer resulting dimension",
                             ));
+                                return None;
+                            }
+                        },
+                        _ => {
+                            diagnostics.push(Diagnostic::error(
+                                "E0203",
+                                "`cbrt` requires one Scalar argument",
+                                *span,
+                                "invalid args",
+                            ));
                             return None;
                         }
-                    },
-                    _ => {
-                        diagnostics.push(Diagnostic::error(
-                            "E0203",
-                            "`cbrt` requires one Scalar argument",
-                            *span,
-                            "invalid args",
-                        ));
-                        return None;
                     }
-                },
+                }
                 "sin" | "cos" | "tan" if h_args.len() == 1 => match h_args[0].ty() {
                     ValueType::Scalar(d) if d.si == [0; 7] && (d.rad == 0 || d.rad == 1) => {
                         ValueType::Scalar(DimVector::DIMENSIONLESS)

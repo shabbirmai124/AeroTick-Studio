@@ -122,10 +122,7 @@ impl Diagnostic {
     /// Renders this diagnostic into a human-readable multi-span report using `ariadne`.
     pub fn render_to_string(&self, filename: &str, source: &str) -> std::io::Result<String> {
         let len = source.len();
-        let primary_offset = self
-            .labels
-            .first()
-            .map_or(0, |l| l.span.start.min(len));
+        let primary_offset = self.labels.first().map_or(0, |l| l.span.start.min(len));
 
         let kind = match self.severity {
             Severity::Error => ReportKind::Error,
@@ -230,9 +227,7 @@ impl SourceMap {
     }
 
     pub fn get(&self, id: usize) -> Option<(&str, &str)> {
-        self.files
-            .get(id)
-            .map(|(n, c)| (n.as_str(), c.as_str()))
+        self.files.get(id).map(|(n, c)| (n.as_str(), c.as_str()))
     }
 }
 

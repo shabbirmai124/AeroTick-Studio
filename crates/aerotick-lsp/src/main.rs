@@ -9,7 +9,7 @@ use aerotick_sema::{SymbolInfo, SymbolKind, analyze};
 use aerotick_span::{Diagnostic, Severity, line_col_to_offset, offset_to_line_col};
 use serde_json::{Value, json};
 use std::collections::HashMap;
-use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
+use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::process::ExitCode;
 
 #[derive(Default)]
@@ -190,7 +190,8 @@ fn handle_request<W: Write>(
             if let (Some(uri), Some(line), Some(col)) = (
                 msg.pointer("/params/textDocument/uri")
                     .and_then(|v| v.as_str()),
-                msg.pointer("/params/position/line").and_then(|v| v.as_u64()),
+                msg.pointer("/params/position/line")
+                    .and_then(|v| v.as_u64()),
                 msg.pointer("/params/position/character")
                     .and_then(|v| v.as_u64()),
             ) && let Some(doc) = docs.get(uri)
@@ -267,8 +268,14 @@ mod tests {
         let valid = "const G: m/s^2 = 9.8 m/s^2;\nstate B { p: Vec3<m>; }";
         let (diags, syms) = analyze_doc(valid);
         assert!(diags.is_empty());
-        assert!(syms.iter().any(|s| s.name == "G" && s.detail.contains("Scalar")));
-        assert!(syms.iter().any(|s| s.name == "p" && s.detail.contains("32B SIMD4")));
+        assert!(
+            syms.iter()
+                .any(|s| s.name == "G" && s.detail.contains("Scalar"))
+        );
+        assert!(
+            syms.iter()
+                .any(|s| s.name == "p" && s.detail.contains("32B SIMD4"))
+        );
 
         let invalid = "let bad = 1.0 m + 2.0 kg;";
         let (bad_diags, _) = analyze_doc(invalid);
@@ -281,7 +288,10 @@ mod tests {
         let mut docs = HashMap::new();
         let mut out = Vec::new();
         let init_msg = json!({ "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {} });
-        assert!(matches!(handle_request(&init_msg, &mut docs, &mut out), Ok(true)));
+        assert!(matches!(
+            handle_request(&init_msg, &mut docs, &mut out),
+            Ok(true)
+        ));
 
         let open_msg = json!({
             "jsonrpc": "2.0",
@@ -293,7 +303,10 @@ mod tests {
                 }
             }
         });
-        assert!(matches!(handle_request(&open_msg, &mut docs, &mut out), Ok(true)));
+        assert!(matches!(
+            handle_request(&open_msg, &mut docs, &mut out),
+            Ok(true)
+        ));
 
         let hover_msg = json!({
             "jsonrpc": "2.0",
@@ -304,7 +317,10 @@ mod tests {
                 "position": { "line": 0, "character": 6 }
             }
         });
-        assert!(matches!(handle_request(&hover_msg, &mut docs, &mut out), Ok(true)));
+        assert!(matches!(
+            handle_request(&hover_msg, &mut docs, &mut out),
+            Ok(true)
+        ));
 
         let sym_msg = json!({
             "jsonrpc": "2.0",
@@ -312,7 +328,10 @@ mod tests {
             "method": "textDocument/documentSymbol",
             "params": { "textDocument": { "uri": "file:///test.aero" } }
         });
-        assert!(matches!(handle_request(&sym_msg, &mut docs, &mut out), Ok(true)));
+        assert!(matches!(
+            handle_request(&sym_msg, &mut docs, &mut out),
+            Ok(true)
+        ));
 
         let stream = String::from_utf8_lossy(&out);
         assert!(stream.contains("\"aerotick-lsp\""));

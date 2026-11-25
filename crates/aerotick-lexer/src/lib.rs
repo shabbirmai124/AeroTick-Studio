@@ -217,7 +217,11 @@ mod tests {
         assert!(tokens.iter().any(|t| t.kind == TokenKind::KwQuat));
         assert!(tokens.iter().any(|t| t.kind == TokenKind::KwMat3));
         assert!(tokens.iter().any(|t| t.kind == TokenKind::DotDot));
-        assert!(tokens.iter().any(|t| t.kind == TokenKind::StringLit("unit_check".into())));
+        assert!(
+            tokens
+                .iter()
+                .any(|t| t.kind == TokenKind::StringLit("unit_check".into()))
+        );
     }
 
     #[test]

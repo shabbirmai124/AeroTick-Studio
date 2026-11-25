@@ -246,9 +246,18 @@ impl MirProgram {
     pub fn format_stats(&self) -> String {
         let mut out = vec![
             "AeroTick MIR Optimization & SoA Cache Report".to_string(),
-            format!("  instructions_before : {}", self.opt_stats.before_inst_count),
-            format!("  instructions_after  : {}", self.opt_stats.after_inst_count),
-            format!("  constants_folded    : {}", self.opt_stats.folded_constants),
+            format!(
+                "  instructions_before : {}",
+                self.opt_stats.before_inst_count
+            ),
+            format!(
+                "  instructions_after  : {}",
+                self.opt_stats.after_inst_count
+            ),
+            format!(
+                "  constants_folded    : {}",
+                self.opt_stats.folded_constants
+            ),
             format!("  pure_fns_inlined    : {}", self.opt_stats.inlined_calls),
             format!("  loops_unrolled      : {}", self.opt_stats.unrolled_loops),
             format!("  cse_eliminated      : {}", self.opt_stats.cse_eliminated),
@@ -271,7 +280,9 @@ impl MirProgram {
 fn dump_insts(insts: &[MirInst], indent: &str, out: &mut Vec<String>) {
     for inst in insts {
         match inst {
-            MirInst::ConstF64 { dst, value } => out.push(format!("{indent}{dst} = const.f64 {value}")),
+            MirInst::ConstF64 { dst, value } => {
+                out.push(format!("{indent}{dst} = const.f64 {value}"))
+            }
             MirInst::ConstVec3 { dst, x, y, z } => {
                 out.push(format!("{indent}{dst} = simd4.pack <{x}, {y}, {z}, 0.0>"))
             }
@@ -772,12 +783,48 @@ fn pass_const_fold(insts: &[MirInst], stats: &mut MirOptStats) -> Vec<MirInst> {
                             }
                         }
                         BinOp::Pow => libm::pow(l, r),
-                        BinOp::Eq => if l == r { 1.0 } else { 0.0 },
-                        BinOp::Ne => if l != r { 1.0 } else { 0.0 },
-                        BinOp::Lt => if l < r { 1.0 } else { 0.0 },
-                        BinOp::Le => if l <= r { 1.0 } else { 0.0 },
-                        BinOp::Gt => if l > r { 1.0 } else { 0.0 },
-                        BinOp::Ge => if l >= r { 1.0 } else { 0.0 },
+                        BinOp::Eq => {
+                            if l == r {
+                                1.0
+                            } else {
+                                0.0
+                            }
+                        }
+                        BinOp::Ne => {
+                            if l != r {
+                                1.0
+                            } else {
+                                0.0
+                            }
+                        }
+                        BinOp::Lt => {
+                            if l < r {
+                                1.0
+                            } else {
+                                0.0
+                            }
+                        }
+                        BinOp::Le => {
+                            if l <= r {
+                                1.0
+                            } else {
+                                0.0
+                            }
+                        }
+                        BinOp::Gt => {
+                            if l > r {
+                                1.0
+                            } else {
+                                0.0
+                            }
+                        }
+                        BinOp::Ge => {
+                            if l >= r {
+                                1.0
+                            } else {
+                                0.0
+                            }
+                        }
                     };
                     consts.insert(dst.clone(), res);
                     stats.folded_constants += 1;
@@ -889,9 +936,7 @@ fn pass_dce(insts: &[MirInst], stats: &mut MirOptStats) -> Vec<MirInst> {
         for inst in insts {
             let is_side_effecting = matches!(
                 inst,
-                MirInst::StoreSoA { .. }
-                    | MirInst::Branch { .. }
-                    | MirInst::ForLoop { .. }
+                MirInst::StoreSoA { .. } | MirInst::Branch { .. } | MirInst::ForLoop { .. }
             ) || matches!(inst, MirInst::Call { intrinsic, .. } if intrinsic == "assert_approx");
             let dst_used = inst_dst(inst).is_some_and(|d| used.contains(&d));
             if is_side_effecting || dst_used {
@@ -907,12 +952,10 @@ fn pass_dce(insts: &[MirInst], stats: &mut MirOptStats) -> Vec<MirInst> {
     let mut out = Vec::with_capacity(insts.len());
     for inst in insts {
         let keep = match inst {
-            MirInst::StoreSoA { .. }
-            | MirInst::Branch { .. }
-            | MirInst::ForLoop { .. } => true,
-            MirInst::Call {
-                intrinsic, dst, ..
-            } => intrinsic == "assert_approx" || used.contains(dst),
+            MirInst::StoreSoA { .. } | MirInst::Branch { .. } | MirInst::ForLoop { .. } => true,
+            MirInst::Call { intrinsic, dst, .. } => {
+                intrinsic == "assert_approx" || used.contains(dst)
+            }
             other => inst_dst(other).is_none_or(|d| used.contains(&d)),
         };
         if keep {
@@ -1020,11 +1063,7 @@ fn inst_uses(inst: &MirInst) -> Vec<String> {
     }
 }
 
-fn rename_inst(
-    inst: &MirInst,
-    prefix: &str,
-    rename: &mut HashMap<String, String>,
-) -> MirInst {
+fn rename_inst(inst: &MirInst, prefix: &str, rename: &mut HashMap<String, String>) -> MirInst {
     let map_use = |r: &str, map: &HashMap<String, String>| -> String {
         map.get(r)
             .cloned()
@@ -1189,11 +1228,9 @@ fn rename_inst(
                 .iter()
                 .map(|b| rename_inst(b, prefix, rename))
                 .collect(),
-            else_insts: else_insts.as_ref().map(|el| {
-                el.iter()
-                    .map(|b| rename_inst(b, prefix, rename))
-                    .collect()
-            }),
+            else_insts: else_insts
+                .as_ref()
+                .map(|el| el.iter().map(|b| rename_inst(b, prefix, rename)).collect()),
         },
     }
 }
@@ -1288,11 +1325,9 @@ where
                 .iter()
                 .map(|i| remap_uses(i, resolve, alias))
                 .collect(),
-            else_insts: else_insts.as_ref().map(|el| {
-                el.iter()
-                    .map(|i| remap_uses(i, resolve, alias))
-                    .collect()
-            }),
+            else_insts: else_insts
+                .as_ref()
+                .map(|el| el.iter().map(|i| remap_uses(i, resolve, alias)).collect()),
         },
         other => other.clone(),
     }
@@ -1329,10 +1364,9 @@ fn lower_expr(
             });
             dst
         }
-        HirExpr::LocalRef { name, .. } => locals
-            .get(name)
-            .cloned()
-            .unwrap_or_else(|| "%undef".into()),
+        HirExpr::LocalRef { name, .. } => {
+            locals.get(name).cloned().unwrap_or_else(|| "%undef".into())
+        }
         HirExpr::ParamRef { name, .. } => {
             if let Some(existing) = locals.get(name) {
                 return existing.clone();
@@ -1605,7 +1639,10 @@ mod tests {
         let mir = lower_to_mir(&hir);
         assert_eq!(mir.layouts[0].total_bytes_per_entity, 104);
         assert_eq!(mir.layouts[0].total_padding_bytes_per_entity, 24);
-        assert!(mir.format_ir().contains("soa.load.vec3_simd4 @prev.Body.thrust"));
+        assert!(
+            mir.format_ir()
+                .contains("soa.load.vec3_simd4 @prev.Body.thrust")
+        );
     }
 
     #[test]

@@ -70,18 +70,16 @@ where
             .then(
                 just(PTok::Tok(TokenKind::Caret))
                     .ignore_then(just(PTok::Tok(TokenKind::Minus)).or_not())
-                    .then(
-                        select! { PTok::Tok(TokenKind::Number(n)) => n }.try_map(
-                            |num_str, span| {
-                                num_str.parse::<i8>().map_err(|_| {
-                                    Rich::custom(
-                                        span,
-                                        format!("unit exponent '{num_str}' must be an integer"),
-                                    )
-                                })
-                            },
-                        ),
-                    )
+                    .then(select! { PTok::Tok(TokenKind::Number(n)) => n }.try_map(
+                        |num_str, span| {
+                            num_str.parse::<i8>().map_err(|_| {
+                                Rich::custom(
+                                    span,
+                                    format!("unit exponent '{num_str}' must be an integer"),
+                                )
+                            })
+                        },
+                    ))
                     .or_not(),
             )
             .map_with(|(base, exp_opt), e| match exp_opt {
@@ -124,25 +122,24 @@ where
     })
 }
 
-fn type_parser<'a, I>() -> impl Parser<'a, I, TypeExpr, extra::Err<Rich<'a, PTok, SimpleSpan>>> + Clone
+fn type_parser<'a, I>()
+-> impl Parser<'a, I, TypeExpr, extra::Err<Rich<'a, PTok, SimpleSpan>>> + Clone
 where
     I: ValueInput<'a, Token = PTok, Span = SimpleSpan>,
 {
     let ann_unit = unit_parser(true);
     let vec3_ty = just(PTok::Tok(TokenKind::KwVec3))
-        .ignore_then(
-            ann_unit
-                .clone()
-                .delimited_by(just(PTok::Tok(TokenKind::Lt)), just(PTok::Tok(TokenKind::Gt))),
-        )
+        .ignore_then(ann_unit.clone().delimited_by(
+            just(PTok::Tok(TokenKind::Lt)),
+            just(PTok::Tok(TokenKind::Gt)),
+        ))
         .map_with(|u, e| TypeExpr::Vec3(u, to_span(e.span())));
 
     let mat3_ty = just(PTok::Tok(TokenKind::KwMat3))
-        .ignore_then(
-            ann_unit
-                .clone()
-                .delimited_by(just(PTok::Tok(TokenKind::Lt)), just(PTok::Tok(TokenKind::Gt))),
-        )
+        .ignore_then(ann_unit.clone().delimited_by(
+            just(PTok::Tok(TokenKind::Lt)),
+            just(PTok::Tok(TokenKind::Gt)),
+        ))
         .map_with(|u, e| TypeExpr::Mat3(u, to_span(e.span())));
 
     let quat_ty =
@@ -244,19 +241,15 @@ where
 
         let if_expr = just(PTok::Tok(TokenKind::KwIf))
             .ignore_then(expr.clone())
-            .then(
-                expr.clone().delimited_by(
-                    just(PTok::Tok(TokenKind::LBrace)),
-                    just(PTok::Tok(TokenKind::RBrace)),
-                ),
-            )
+            .then(expr.clone().delimited_by(
+                just(PTok::Tok(TokenKind::LBrace)),
+                just(PTok::Tok(TokenKind::RBrace)),
+            ))
             .then_ignore(just(PTok::Tok(TokenKind::KwElse)))
-            .then(
-                expr.clone().delimited_by(
-                    just(PTok::Tok(TokenKind::LBrace)),
-                    just(PTok::Tok(TokenKind::RBrace)),
-                ),
-            )
+            .then(expr.clone().delimited_by(
+                just(PTok::Tok(TokenKind::LBrace)),
+                just(PTok::Tok(TokenKind::RBrace)),
+            ))
             .map_with(|((cond, then_expr), else_expr), e| Expr::IfExpr {
                 cond: Box::new(cond),
                 then_expr: Box::new(then_expr),
@@ -296,14 +289,7 @@ where
         );
 
         let atom = choice((
-            vec3_lit,
-            quat_lit,
-            mat3_lit,
-            if_expr,
-            call,
-            quantity,
-            ident,
-            parens,
+            vec3_lit, quat_lit, mat3_lit, if_expr, call, quantity, ident, parens,
         ));
 
         let postfix = atom.foldl(
@@ -539,8 +525,7 @@ where
     })
 }
 
-fn program_parser<'a, I>(
-) -> impl Parser<'a, I, Program, extra::Err<Rich<'a, PTok, SimpleSpan>>>
+fn program_parser<'a, I>() -> impl Parser<'a, I, Program, extra::Err<Rich<'a, PTok, SimpleSpan>>>
 where
     I: ValueInput<'a, Token = PTok, Span = SimpleSpan>,
 {
@@ -553,7 +538,7 @@ where
         .map_with(|n, e| (n, to_span(e.span())));
 
     let unit_alias_item = just(PTok::Tok(TokenKind::KwUnit))
-        .ignore_then(ident_spanned.clone())
+        .ignore_then(ident_spanned)
         .then_ignore(just(PTok::Tok(TokenKind::Eq)))
         .then(ann_unit)
         .then_ignore(just(PTok::Tok(TokenKind::Semi)))
@@ -567,7 +552,7 @@ where
         });
 
     let const_item = just(PTok::Tok(TokenKind::KwConst))
-        .ignore_then(ident_spanned.clone())
+        .ignore_then(ident_spanned)
         .then(
             just(PTok::Tok(TokenKind::Colon))
                 .ignore_then(ty.clone())
@@ -587,7 +572,6 @@ where
         });
 
     let state_field = ident_spanned
-        .clone()
         .then_ignore(just(PTok::Tok(TokenKind::Colon)))
         .then(ty.clone())
         .then_ignore(just(PTok::Tok(TokenKind::Semi)))
@@ -599,7 +583,7 @@ where
         });
 
     let state_item = just(PTok::Tok(TokenKind::KwState))
-        .ignore_then(ident_spanned.clone())
+        .ignore_then(ident_spanned)
         .then(state_field.repeated().collect::<Vec<_>>().delimited_by(
             just(PTok::Tok(TokenKind::LBrace)),
             just(PTok::Tok(TokenKind::RBrace)),
@@ -614,7 +598,6 @@ where
         });
 
     let param = ident_spanned
-        .clone()
         .then_ignore(just(PTok::Tok(TokenKind::Colon)))
         .then(ty.clone())
         .map_with(|((name, name_span), type_expr), e| Param {
@@ -625,7 +608,7 @@ where
         });
 
     let fn_item = just(PTok::Tok(TokenKind::KwFn))
-        .ignore_then(ident_spanned.clone())
+        .ignore_then(ident_spanned)
         .then(
             param
                 .clone()
@@ -657,24 +640,30 @@ where
     let step_block = just(PTok::Tok(TokenKind::KwStep))
         .ignore_then(
             ident_spanned
-                .clone()
                 .then_ignore(just(PTok::Tok(TokenKind::Colon)))
-                .then(ident_spanned.clone())
+                .then(ident_spanned)
                 .delimited_by(
                     just(PTok::Tok(TokenKind::LParen)),
                     just(PTok::Tok(TokenKind::RParen)),
                 ),
         )
         .then_ignore(just(PTok::Tok(TokenKind::Arrow)))
-        .then(ident_spanned.clone())
+        .then(ident_spanned)
         .then_ignore(just(PTok::Tok(TokenKind::Colon)))
-        .then(ident_spanned.clone())
+        .then(ident_spanned)
         .then(stmt.clone().repeated().collect::<Vec<_>>().delimited_by(
             just(PTok::Tok(TokenKind::LBrace)),
             just(PTok::Tok(TokenKind::RBrace)),
         ))
         .map_with(
-            |(((((prev_name, _), (prev_type, prev_type_span)), (next_name, _)), (next_type, next_type_span)), stmts), e| {
+            |(
+                (
+                    (((prev_name, _), (prev_type, prev_type_span)), (next_name, _)),
+                    (next_type, next_type_span),
+                ),
+                stmts,
+            ),
+             e| {
                 StepBlock {
                     prev_name,
                     prev_type,
@@ -689,7 +678,7 @@ where
         );
 
     let system_item = just(PTok::Tok(TokenKind::KwSystem))
-        .ignore_then(ident_spanned.clone())
+        .ignore_then(ident_spanned)
         .then(
             param
                 .separated_by(just(PTok::Tok(TokenKind::Comma)))
@@ -820,7 +809,12 @@ pub fn parse(tokens: &[SpannedToken], eof_offset: usize) -> (Option<Program>, Ve
         .into_iter()
         .map(|err| {
             let sp = to_span(*err.span());
-            Diagnostic::error("E0102", format!("Syntax error: {err}"), sp, "unexpected token")
+            Diagnostic::error(
+                "E0102",
+                format!("Syntax error: {err}"),
+                sp,
+                "unexpected token",
+            )
         })
         .collect();
 

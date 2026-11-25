@@ -247,7 +247,11 @@ pub fn check_source(filename: &str, source: &str) -> Result<String, String> {
         out.push_str(&format!("  const {}: {}\n", c.name, c.ty));
     }
     for st in &unit.hir.states {
-        out.push_str(&format!("  state {} ({} fields)\n", st.name, st.fields.len()));
+        out.push_str(&format!(
+            "  state {} ({} fields)\n",
+            st.name,
+            st.fields.len()
+        ));
     }
     for f in &unit.hir.functions {
         out.push_str(&format!("  pure fn {} -> {}\n", f.name, f.return_type));
@@ -308,8 +312,8 @@ fn run_jit_bench(
 ) -> Result<(f64, String, String), String> {
     let kernel =
         aerotick_codegen_cranelift::CraneliftJitKernel::compile(mir).map_err(|e| e.to_string())?;
-    let mut vm = DeterministicVm::new(mir, entities, dt, NumericMode::Float64)
-        .map_err(|e| e.to_string())?;
+    let mut vm =
+        DeterministicVm::new(mir, entities, dt, NumericMode::Float64).map_err(|e| e.to_string())?;
     let start = Instant::now();
     for _ in 0..ticks {
         let (prev_ptrs, next_ptrs) = vm.field_ptrs_mut();

@@ -1,0 +1,16 @@
+[package]
+name = "aerotick-lsp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "aerotick-lsp"
+path = "src/main.rs"
+
+[dependencies]
+aerotick-span = { path = "../aerotick-span" }
+aerotick-lexer = { path = "../aerotick-lexer" }
+aerotick-parser = { path = "../aerotick-parser" }
+aerotick-sema = { path = "../aerotick-sema" }
+serde_json.workspace = true

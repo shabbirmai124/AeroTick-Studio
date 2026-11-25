@@ -211,7 +211,7 @@ impl CraneliftJitKernel {
             let body_bb = builder.create_block();
             let exit_bb = builder.create_block();
 
-            builder.ins().jump(loop_bb, &[zero_i.into()]);
+            builder.ins().jump(loop_bb, &[zero_i]);
             builder.switch_to_block(loop_bb);
             let idx = builder.block_params(loop_bb)[0];
             let cond = builder.ins().icmp(IntCC::UnsignedLessThan, idx, count);
@@ -235,7 +235,7 @@ impl CraneliftJitKernel {
             state.emit_insts(&system.insts);
             let one_i = state.builder.ins().iconst(ptr_ty, 1);
             let next_idx = state.builder.ins().iadd(idx, one_i);
-            state.builder.ins().jump(loop_bb, &[next_idx.into()]);
+            state.builder.ins().jump(loop_bb, &[next_idx]);
 
             state.builder.seal_block(loop_bb);
             state.builder.switch_to_block(exit_bb);
@@ -305,7 +305,11 @@ impl<'a> LowerState<'a> {
     }
 
     fn load_field_base(&mut self, table_ptr: Value, field_name: &str) -> Option<(Value, usize)> {
-        let pos = self.layout.fields.iter().position(|f| f.name == field_name)?;
+        let pos = self
+            .layout
+            .fields
+            .iter()
+            .position(|f| f.name == field_name)?;
         let lanes = self.layout.fields[pos].lanes;
         let offset = (pos as i32) * (self.ptr_bytes() as i32);
         let base = self
@@ -510,7 +514,8 @@ impl<'a> LowerState<'a> {
                     let vx = self.regs.get(x).map_or(zero, |v| v.as_scalar(zero));
                     let vy = self.regs.get(y).map_or(zero, |v| v.as_scalar(zero));
                     let vz = self.regs.get(z).map_or(zero, |v| v.as_scalar(zero));
-                    self.regs.insert(dst.clone(), JitVal::Quat([vw, vx, vy, vz]));
+                    self.regs
+                        .insert(dst.clone(), JitVal::Quat([vw, vx, vy, vz]));
                 }
                 MirInst::ConstMat3 { dst, elems } => {
                     let mut arr = [zero; 9];
@@ -535,16 +540,51 @@ impl<'a> LowerState<'a> {
                         let ptr = self.elem_ptr(base, lanes);
                         match mir_type {
                             MirType::Vec3Simd4 => {
-                                let x = self.builder.ins().load(types::F64, MemFlags::trusted(), ptr, 0);
-                                let y = self.builder.ins().load(types::F64, MemFlags::trusted(), ptr, 8);
-                                let z = self.builder.ins().load(types::F64, MemFlags::trusted(), ptr, 16);
+                                let x = self.builder.ins().load(
+                                    types::F64,
+                                    MemFlags::trusted(),
+                                    ptr,
+                                    0,
+                                );
+                                let y = self.builder.ins().load(
+                                    types::F64,
+                                    MemFlags::trusted(),
+                                    ptr,
+                                    8,
+                                );
+                                let z = self.builder.ins().load(
+                                    types::F64,
+                                    MemFlags::trusted(),
+                                    ptr,
+                                    16,
+                                );
                                 self.regs.insert(dst.clone(), JitVal::Vec3([x, y, z]));
                             }
                             MirType::QuatSimd4 => {
-                                let w = self.builder.ins().load(types::F64, MemFlags::trusted(), ptr, 0);
-                                let x = self.builder.ins().load(types::F64, MemFlags::trusted(), ptr, 8);
-                                let y = self.builder.ins().load(types::F64, MemFlags::trusted(), ptr, 16);
-                                let z = self.builder.ins().load(types::F64, MemFlags::trusted(), ptr, 24);
+                                let w = self.builder.ins().load(
+                                    types::F64,
+                                    MemFlags::trusted(),
+                                    ptr,
+                                    0,
+                                );
+                                let x = self.builder.ins().load(
+                                    types::F64,
+                                    MemFlags::trusted(),
+                                    ptr,
+                                    8,
+                                );
+                                let y = self.builder.ins().load(
+                                    types::F64,
+                                    MemFlags::trusted(),
+                                    ptr,
+                                    16,
+                                );
+                                let z = self.builder.ins().load(
+                                    types::F64,
+                                    MemFlags::trusted(),
+                                    ptr,
+                                    24,
+                                );
                                 self.regs.insert(dst.clone(), JitVal::Quat([w, x, y, z]));
                             }
                             MirType::Mat3Simd12 => {
@@ -561,7 +601,12 @@ impl<'a> LowerState<'a> {
                                 self.regs.insert(dst.clone(), JitVal::Mat3(m));
                             }
                             _ => {
-                                let v = self.builder.ins().load(types::F64, MemFlags::trusted(), ptr, 0);
+                                let v = self.builder.ins().load(
+                                    types::F64,
+                                    MemFlags::trusted(),
+                                    ptr,
+                                    0,
+                                );
                                 self.regs.insert(dst.clone(), JitVal::Scalar(v));
                             }
                         }
@@ -597,10 +642,17 @@ impl<'a> LowerState<'a> {
                                 let m = val.as_mat3(zero);
                                 let offs = [0, 8, 16, 32, 40, 48, 64, 72, 80];
                                 for (i, off) in offs.iter().enumerate() {
-                                    self.builder.ins().store(MemFlags::trusted(), m[i], ptr, *off);
+                                    self.builder
+                                        .ins()
+                                        .store(MemFlags::trusted(), m[i], ptr, *off);
                                 }
                                 for pad_off in [24, 56, 88] {
-                                    self.builder.ins().store(MemFlags::trusted(), zero, ptr, pad_off);
+                                    self.builder.ins().store(
+                                        MemFlags::trusted(),
+                                        zero,
+                                        ptr,
+                                        pad_off,
+                                    );
                                 }
                             }
                             _ => {
@@ -776,9 +828,7 @@ impl<'a> LowerState<'a> {
                         ("atan2", [JitVal::Scalar(y), JitVal::Scalar(x)]) => {
                             JitVal::Scalar(self.call_helper2("aerotick_det_atan2", *y, *x))
                         }
-                        ("abs", [JitVal::Scalar(x)]) => {
-                            JitVal::Scalar(self.builder.ins().fabs(*x))
-                        }
+                        ("abs", [JitVal::Scalar(x)]) => JitVal::Scalar(self.builder.ins().fabs(*x)),
                         ("abs", [JitVal::Vec3(v)]) => JitVal::Vec3([
                             self.builder.ins().fabs(v[0]),
                             self.builder.ins().fabs(v[1]),
@@ -884,7 +934,10 @@ impl<'a> LowerState<'a> {
                             let out = self.quat_mul(tmp, qc);
                             JitVal::Vec3([out[1], out[2], out[3]])
                         }
-                        ("quat_integrate", [JitVal::Quat(q), JitVal::Vec3(w), JitVal::Scalar(dt_v)]) => {
+                        (
+                            "quat_integrate",
+                            [JitVal::Quat(q), JitVal::Vec3(w), JitVal::Scalar(dt_v)],
+                        ) => {
                             let wq = [zero, w[0], w[1], w[2]];
                             let dq = self.quat_mul(*q, wq);
                             let half = self.f64_const(0.5);
@@ -896,9 +949,10 @@ impl<'a> LowerState<'a> {
                             }
                             JitVal::Quat(self.quat_norm(next_q))
                         }
-                        ("mat3_diag", [JitVal::Scalar(x), JitVal::Scalar(y), JitVal::Scalar(z)]) => {
-                            JitVal::Mat3([*x, zero, zero, zero, *y, zero, zero, zero, *z])
-                        }
+                        (
+                            "mat3_diag",
+                            [JitVal::Scalar(x), JitVal::Scalar(y), JitVal::Scalar(z)],
+                        ) => JitVal::Mat3([*x, zero, zero, zero, *y, zero, zero, zero, *z]),
                         ("mat3_from_quat", [JitVal::Quat(q)]) => {
                             let [w, x, y, z] = self.quat_norm(*q);
                             let one = self.f64_const(1.0);
@@ -945,9 +999,9 @@ impl<'a> LowerState<'a> {
 
                             JitVal::Mat3([m00, m01, m02, m10, m11, m12, m20, m21, m22])
                         }
-                        ("mat3_transpose", [JitVal::Mat3(m)]) => JitVal::Mat3([
-                            m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8],
-                        ]),
+                        ("mat3_transpose", [JitVal::Mat3(m)]) => {
+                            JitVal::Mat3([m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]])
+                        }
                         ("mat3_inv", [JitVal::Mat3(m)]) => JitVal::Mat3(self.mat3_inv(*m)),
                         _ => JitVal::Scalar(zero),
                     };
@@ -1029,10 +1083,12 @@ mod tests {
         let Ok(kernel) = CraneliftJitKernel::compile(&mir) else {
             panic!("JIT compile failed for {name}");
         };
-        let Ok(mut vm_ref) = DeterministicVm::new(&mir, entities, 0.01, NumericMode::Float64) else {
+        let Ok(mut vm_ref) = DeterministicVm::new(&mir, entities, 0.01, NumericMode::Float64)
+        else {
             panic!("VM init failed for {name}");
         };
-        let Ok(mut vm_jit) = DeterministicVm::new(&mir, entities, 0.01, NumericMode::Float64) else {
+        let Ok(mut vm_jit) = DeterministicVm::new(&mir, entities, 0.01, NumericMode::Float64)
+        else {
             panic!("JIT VM init failed for {name}");
         };
 

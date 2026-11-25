@@ -70,7 +70,10 @@ pub fn emit_llvm_ir(mir: &MirProgram) -> String {
 
     for layout in &mir.layouts {
         let ptrs = vec!["ptr"; layout.fields.len()].join(", ");
-        header.push(format!("%struct.{}_SoA = type {{ {ptrs} }}", layout.state_name));
+        header.push(format!(
+            "%struct.{}_SoA = type {{ {ptrs} }}",
+            layout.state_name
+        ));
     }
     header.push(String::new());
 
@@ -414,9 +417,7 @@ fn emit_insts_with_suffix(
                         type_suffix(l_ty),
                         type_suffix(r_ty)
                     );
-                    decls.insert(format!(
-                        "declare [3 x <4 x double>] {sym}({lt_s}, {rt_s})"
-                    ));
+                    decls.insert(format!("declare [3 x <4 x double>] {sym}({lt_s}, {rt_s})"));
                     out.push(format!(
                         "  {d} = call [3 x <4 x double>] {sym}({lt_s} {rlhs}, {rt_s} {rrhs})"
                     ));
@@ -605,10 +606,8 @@ pub fn compile_to_object(
         .map_err(|e| CodegenError::LlvmFailure(e.to_string()))?;
 
     let ir_text = emit_llvm_ir(mir);
-    let mem_buf = MemoryBuffer::create_from_memory_range_copy(
-        ir_text.as_bytes(),
-        "aerotick_ultra_v2",
-    );
+    let mem_buf =
+        MemoryBuffer::create_from_memory_range_copy(ir_text.as_bytes(), "aerotick_ultra_v2");
     let context = Context::create();
     let module = context
         .create_module_from_ir(mem_buf)

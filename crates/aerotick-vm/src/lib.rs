@@ -329,13 +329,15 @@ impl DeterministicVm {
                         }
                         _ => {
                             arr[base] = match f.name.as_str() {
-                                "mass" => if is_rocket {
-                                    1_200.0
-                                } else if is_quad {
-                                    1.8
-                                } else {
-                                    100.0
-                                },
+                                "mass" => {
+                                    if is_rocket {
+                                        1_200.0
+                                    } else if is_quad {
+                                        1.8
+                                    } else {
+                                        100.0
+                                    }
+                                }
                                 "fuel_rate" => 4.2,
                                 "drag_k" => 0.32,
                                 "cd" => 0.45,
@@ -575,12 +577,48 @@ fn scalar_binop(a: f64, b: f64, op: BinOp, mode: NumericMode) -> f64 {
             BinOp::Mul => from_fixed64(mul_fixed64(qa, qb)),
             BinOp::Div => from_fixed64(div_fixed64(qa, qb)),
             BinOp::Pow => libm::pow(a, b),
-            BinOp::Eq => if qa == qb { 1.0 } else { 0.0 },
-            BinOp::Ne => if qa != qb { 1.0 } else { 0.0 },
-            BinOp::Lt => if qa < qb { 1.0 } else { 0.0 },
-            BinOp::Le => if qa <= qb { 1.0 } else { 0.0 },
-            BinOp::Gt => if qa > qb { 1.0 } else { 0.0 },
-            BinOp::Ge => if qa >= qb { 1.0 } else { 0.0 },
+            BinOp::Eq => {
+                if qa == qb {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
+            BinOp::Ne => {
+                if qa != qb {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
+            BinOp::Lt => {
+                if qa < qb {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
+            BinOp::Le => {
+                if qa <= qb {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
+            BinOp::Gt => {
+                if qa > qb {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
+            BinOp::Ge => {
+                if qa >= qb {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
         };
     }
 
@@ -588,14 +626,56 @@ fn scalar_binop(a: f64, b: f64, op: BinOp, mode: NumericMode) -> f64 {
         BinOp::Add => a + b,
         BinOp::Sub => a - b,
         BinOp::Mul => a * b,
-        BinOp::Div => if b == 0.0 { 0.0 } else { a / b },
+        BinOp::Div => {
+            if b == 0.0 {
+                0.0
+            } else {
+                a / b
+            }
+        }
         BinOp::Pow => libm::pow(a, b),
-        BinOp::Eq => if a == b { 1.0 } else { 0.0 },
-        BinOp::Ne => if a != b { 1.0 } else { 0.0 },
-        BinOp::Lt => if a < b { 1.0 } else { 0.0 },
-        BinOp::Le => if a <= b { 1.0 } else { 0.0 },
-        BinOp::Gt => if a > b { 1.0 } else { 0.0 },
-        BinOp::Ge => if a >= b { 1.0 } else { 0.0 },
+        BinOp::Eq => {
+            if a == b {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinOp::Ne => {
+            if a != b {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinOp::Lt => {
+            if a < b {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinOp::Le => {
+            if a <= b {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinOp::Gt => {
+            if a > b {
+                1.0
+            } else {
+                0.0
+            }
+        }
+        BinOp::Ge => {
+            if a >= b {
+                1.0
+            } else {
+                0.0
+            }
+        }
     }
 }
 
@@ -656,8 +736,7 @@ fn mat3_mul_mat3(a: [f64; 9], b: [f64; 9]) -> [f64; 9] {
     let mut out = [0.0; 9];
     for r in 0..3 {
         for c in 0..3 {
-            out[r * 3 + c] =
-                a[r * 3] * b[c] + a[r * 3 + 1] * b[3 + c] + a[r * 3 + 2] * b[6 + c];
+            out[r * 3 + c] = a[r * 3] * b[c] + a[r * 3 + 1] * b[3 + c] + a[r * 3 + 2] * b[6 + c];
         }
     }
     out
@@ -764,7 +843,12 @@ fn exec_insts_with_assertions(
                             let base = idx * 4;
                             regs.insert(
                                 dst.clone(),
-                                RegVal::Quat([arr[base], arr[base + 1], arr[base + 2], arr[base + 3]]),
+                                RegVal::Quat([
+                                    arr[base],
+                                    arr[base + 1],
+                                    arr[base + 2],
+                                    arr[base + 3],
+                                ]),
                             );
                         }
                         MirType::Mat3Simd12 => {
@@ -940,8 +1024,9 @@ fn exec_insts_with_assertions(
                                 && (a[1] - b[1]).abs() <= tol[1]
                                 && (a[2] - b[2]).abs() <= tol[2]
                         }
-                        (RegVal::Quat(a), RegVal::Quat(b), RegVal::Quat(tol)) => (0..4)
-                            .all(|i| (a[i] - b[i]).abs() <= tol[i]),
+                        (RegVal::Quat(a), RegVal::Quat(b), RegVal::Quat(tol)) => {
+                            (0..4).all(|i| (a[i] - b[i]).abs() <= tol[i])
+                        }
                         _ => false,
                     };
                     if !ok {
@@ -970,15 +1055,14 @@ fn exec_insts_with_assertions(
                         }
                     }
                     ("normalize" | "quat_norm", [RegVal::Quat(q)]) => RegVal::Quat(quat_norm(*q)),
-                    ("quat_conj", [RegVal::Quat(q)]) => {
-                        RegVal::Quat([q[0], -q[1], -q[2], -q[3]])
-                    }
+                    ("quat_conj", [RegVal::Quat(q)]) => RegVal::Quat([q[0], -q[1], -q[2], -q[3]]),
                     ("quat_rotate", [RegVal::Quat(q), RegVal::Vec3(v)]) => {
                         RegVal::Vec3(quat_rotate(*q, *v))
                     }
-                    ("quat_integrate", [RegVal::Quat(q), RegVal::Vec3(w), RegVal::Scalar(dt_v)]) => {
-                        RegVal::Quat(quat_integrate(*q, *w, *dt_v))
-                    }
+                    (
+                        "quat_integrate",
+                        [RegVal::Quat(q), RegVal::Vec3(w), RegVal::Scalar(dt_v)],
+                    ) => RegVal::Quat(quat_integrate(*q, *w, *dt_v)),
                     ("mat3_diag", [RegVal::Scalar(x), RegVal::Scalar(y), RegVal::Scalar(z)]) => {
                         RegVal::Mat3([*x, 0.0, 0.0, 0.0, *y, 0.0, 0.0, 0.0, *z])
                     }
@@ -996,9 +1080,9 @@ fn exec_insts_with_assertions(
                             1.0 - 2.0 * (x * x + y * y),
                         ])
                     }
-                    ("mat3_transpose", [RegVal::Mat3(m)]) => RegVal::Mat3([
-                        m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8],
-                    ]),
+                    ("mat3_transpose", [RegVal::Mat3(m)]) => {
+                        RegVal::Mat3([m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]])
+                    }
                     ("mat3_inv", [RegVal::Mat3(m)]) => RegVal::Mat3(mat3_inv(*m)),
                     ("dot", [RegVal::Vec3(a), RegVal::Vec3(b)]) => {
                         RegVal::Scalar(a[0] * b[0] + a[1] * b[1] + a[2] * b[2])
