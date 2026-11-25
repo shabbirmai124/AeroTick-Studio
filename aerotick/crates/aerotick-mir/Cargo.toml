@@ -1,9 +1,0 @@
-[package]
-name = "aerotick-mir"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-
-[dependencies]
-aerotick-ast = { path = "../aerotick-ast" }
-aerotick-sema = { path = "../aerotick-sema" }

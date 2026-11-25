@@ -1,0 +1,27 @@
+// Compile-Fail Showcase (AeroTick Ultra v2.0)
+// Demonstrates all 5 primary physical & deterministic compiler diagnostics:
+// E0202: Dimensional mismatch (incompatible SI units)
+// E0210: Non-integer resulting dimension in sqrt
+// E0301: Immutable prev state mutation
+// E0303: Heap allocation inside step kernel
+// E0305: Unbounded loop inside step kernel
+
+state BadBody {
+    pos: Vec3<m>;
+    vel: Vec3<m/s>;
+}
+
+let bad_unit_add = 10.0 m + 5.0 kg;
+let bad_odd_sqrt = sqrt(10.0 m);
+
+system FaultyKernel(dt: s) {
+    step(prev: BadBody) -> next: BadBody {
+        prev.pos = prev.pos + prev.vel * dt;
+        let scratch = alloc(128);
+        while dt > 0.0 s {
+            next.vel = prev.vel;
+        }
+        next.pos = prev.pos;
+        next.vel = prev.vel;
+    }
+}

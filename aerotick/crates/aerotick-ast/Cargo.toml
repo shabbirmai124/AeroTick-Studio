@@ -1,8 +1,0 @@
-[package]
-name = "aerotick-ast"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-
-[dependencies]
-aerotick-span = { path = "../aerotick-span" }

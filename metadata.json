@@ -1,6 +1,0 @@
-{
-  "name": "AeroTick Studio",
-  "description": "Deterministic, dimensionally-safe real-time physics and flight simulation compiler workbench with SI unit verification, SoA MIR lowering, LLVM IR & C-ABI generation, and live tick-driven execution.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

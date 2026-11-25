@@ -1,0 +1,58 @@
+name: AeroTick Ultra CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust-workspace:
+    name: Format, Clippy, Workspace Tests & CLI ({{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo registry & target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.toml', 'crates/*/Cargo.toml') }}
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy (-D warnings)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Run full workspace unit, proptest & compile-fail tests
+        run: cargo test --workspace
+
+      - name: Smoke-test aeroc v2.0 CLI (JIT, Swarm, Rollback, MIR stats, Tests)
+        run: |
+          cargo run -p aeroc -- check examples/reference_body.aero
+          cargo run -p aeroc -- check examples/rocket_6dof.aero
+          cargo run -p aeroc -- check examples/quadcopter_pid.aero
+          cargo run -p aeroc -- test examples/rocket_6dof.aero
+          cargo run -p aeroc -- test examples/quadcopter_pid.aero
+          cargo run -p aeroc -- emit-ir examples/rocket_6dof.aero --opt --stats
+          cargo run -p aeroc -- emit-ir examples/reference_body.aero --llvm
+          cargo run -p aeroc -- emit-header examples/rocket_6dof.aero
+          cargo run --release -p aeroc -- replay examples/reference_body.aero --ticks 10000 --checkpoint-every 1000 --verify-rollback
+          cargo run --release -p aeroc -- bench examples/reference_body.aero --entities 1000 --ticks 1000 --jit --threads 2
+          cargo run --release -p aeroc -- bench examples/rocket_6dof.aero --entities 256 --ticks 500 --jit
+          cargo run -p aeroc -- fmt --check examples/rocket_6dof.aero

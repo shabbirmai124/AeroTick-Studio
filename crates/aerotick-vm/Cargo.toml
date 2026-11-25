@@ -1,0 +1,18 @@
+[package]
+name = "aerotick-vm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+aerotick-ast = { path = "../aerotick-ast" }
+aerotick-mir = { path = "../aerotick-mir" }
+libm.workspace = true
+rayon.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+aerotick-lexer = { path = "../aerotick-lexer" }
+aerotick-parser = { path = "../aerotick-parser" }
+aerotick-sema = { path = "../aerotick-sema" }

@@ -1,0 +1,23 @@
+[package]
+name = "aerotick-codegen-llvm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = []
+llvm = ["dep:inkwell"]
+llvm18 = ["llvm", "inkwell/llvm18-1"]
+llvm19 = ["llvm", "inkwell/llvm19-1"]
+llvm20 = ["llvm", "inkwell/llvm20-1"]
+
+[dependencies]
+aerotick-ast = { path = "../aerotick-ast" }
+aerotick-mir = { path = "../aerotick-mir" }
+thiserror.workspace = true
+inkwell = { workspace = true, optional = true }
+
+[dev-dependencies]
+aerotick-lexer = { path = "../aerotick-lexer" }
+aerotick-parser = { path = "../aerotick-parser" }
+aerotick-sema = { path = "../aerotick-sema" }

@@ -1,0 +1,42 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/aerotick-span",
+    "crates/aerotick-lexer",
+    "crates/aerotick-ast",
+    "crates/aerotick-parser",
+    "crates/aerotick-sema",
+    "crates/aerotick-mir",
+    "crates/aerotick-codegen-llvm",
+    "crates/aerotick-codegen-cranelift",
+    "crates/aerotick-vm",
+    "crates/aerotick-abi",
+    "crates/aerotick-lsp",
+    "crates/aeroc",
+]
+
+[workspace.package]
+version = "2.0.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/aerotick/aerotick"
+description = "AeroTick Ultra v2.0 — Deterministic 6-DoF Physics DSL, SoA MIR Optimizer, Cranelift JIT, LLVM IR & Swarm VM"
+
+[workspace.dependencies]
+ariadne = "0.5"
+logos = "0.14"
+chumsky = "0.10.1"
+clap = { version = "4.5", features = ["derive"] }
+sha2 = "0.10"
+thiserror = "2.0"
+libm = "0.2"
+rayon = "1.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+proptest = "1.5"
+cranelift-codegen = "0.116"
+cranelift-frontend = "0.116"
+cranelift-jit = "0.116"
+cranelift-module = "0.116"
+cranelift-native = "0.116"
+inkwell = { version = "0.11.0", default-features = false, features = ["llvm18-1"] }

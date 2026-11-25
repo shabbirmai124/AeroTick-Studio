@@ -1,0 +1,13 @@
+[package]
+name = "aerotick-abi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+aerotick-mir = { path = "../aerotick-mir" }
+
+[dev-dependencies]
+aerotick-lexer = { path = "../aerotick-lexer" }
+aerotick-parser = { path = "../aerotick-parser" }
+aerotick-sema = { path = "../aerotick-sema" }
